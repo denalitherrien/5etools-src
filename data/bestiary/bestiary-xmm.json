@@ -2814,6 +2814,9 @@
 				},
 				{
 					"source": "EFA"
+				},
+				{
+					"source": "FFotR"
 				}
 			],
 			"size": [
@@ -7184,7 +7187,7 @@
 				{
 					"name": "Cunning Action",
 					"entries": [
-						"The assassin takes the Dash, Disengage, or Hide action."
+						"The assassin takes the {@action Dash|XPHB}, {@action Disengage|XPHB}, or {@action Hide|XPHB} action."
 					]
 				}
 			],
@@ -7217,7 +7220,6 @@
 				"RNG"
 			],
 			"conditionInflict": [
-				"incapacitated",
 				"poisoned"
 			],
 			"hasToken": true,
@@ -7590,9 +7592,6 @@
 				"MA",
 				"RA"
 			],
-			"conditionInflict": [
-				"incapacitated"
-			],
 			"savingThrowForcedSpell": [
 				"dexterity"
 			],
@@ -7694,9 +7693,6 @@
 			"miscTags": [
 				"AOE",
 				"MA"
-			],
-			"conditionInflict": [
-				"incapacitated"
 			],
 			"hasToken": true,
 			"hasFluff": true,
@@ -8136,6 +8132,9 @@
 				},
 				{
 					"source": "EFA"
+				},
+				{
+					"source": "FFotR"
 				}
 			],
 			"size": [
@@ -8360,9 +8359,6 @@
 				"MLW",
 				"RA",
 				"RNG"
-			],
-			"conditionInflict": [
-				"incapacitated"
 			],
 			"hasToken": true,
 			"hasFluff": true,
@@ -13908,7 +13904,7 @@
 				{
 					"name": "Hasten {@recharge 5}",
 					"entries": [
-						"The golem takes the Dash and Disengage actions."
+						"The golem takes the {@action Dash|XPHB} and {@action Disengage|XPHB} actions."
 					]
 				}
 			],
@@ -16699,9 +16695,6 @@
 				"HPR",
 				"MA"
 			],
-			"conditionInflict": [
-				"incapacitated"
-			],
 			"conditionInflictSpell": [
 				"prone"
 			],
@@ -16874,9 +16867,6 @@
 			"miscTags": [
 				"AOE",
 				"MA"
-			],
-			"conditionInflict": [
-				"incapacitated"
 			],
 			"conditionInflictSpell": [
 				"prone"
@@ -18085,7 +18075,6 @@
 				"MA"
 			],
 			"conditionInflict": [
-				"incapacitated",
 				"prone"
 			],
 			"hasToken": true,
@@ -28519,7 +28508,7 @@
 				{
 					"name": "Nimble Escape",
 					"entries": [
-						"The goblin takes the Disengage or Hide action."
+						"The goblin takes the {@action Disengage|XPHB} or {@action Hide|XPHB} action."
 					]
 				}
 			],
@@ -28784,7 +28773,7 @@
 				{
 					"name": "Nimble Escape",
 					"entries": [
-						"The goblin takes the Disengage or Hide action."
+						"The goblin takes the {@action Disengage|XPHB} or {@action Hide|XPHB} action."
 					]
 				}
 			],
@@ -28908,7 +28897,7 @@
 				{
 					"name": "Nimble Escape",
 					"entries": [
-						"The goblin takes the Disengage or Hide action."
+						"The goblin takes the {@action Disengage|XPHB} or {@action Hide|XPHB} action."
 					]
 				}
 			],
@@ -30830,6 +30819,9 @@
 				},
 				{
 					"source": "LFL"
+				},
+				{
+					"source": "FFotR"
 				}
 			],
 			"size": [
@@ -31788,6 +31780,9 @@
 				},
 				{
 					"source": "EFA"
+				},
+				{
+					"source": "FFotR"
 				}
 			],
 			"size": [
@@ -34703,7 +34698,7 @@
 				{
 					"name": "Shadow Stealth",
 					"entries": [
-						"While in {@variantrule Dim Light|XPHB} or {@variantrule Darkness|XPHB}, the dragon takes the Hide action."
+						"While in {@variantrule Dim Light|XPHB} or {@variantrule Darkness|XPHB}, the dragon takes the {@action Hide|XPHB} action."
 					]
 				}
 			],
@@ -37910,7 +37905,7 @@
 				{
 					"name": "Shadow Stealth",
 					"entries": [
-						"While in {@variantrule Dim Light|XPHB} or {@variantrule Darkness|XPHB}, the manes takes the Hide action."
+						"While in {@variantrule Dim Light|XPHB} or {@variantrule Darkness|XPHB}, the manes takes the {@action Hide|XPHB} action."
 					]
 				}
 			],
@@ -43430,7 +43425,7 @@
 				{
 					"name": "Nimble Escape",
 					"entries": [
-						"The panther takes the Disengage or Hide action."
+						"The panther takes the {@action Disengage|XPHB} or {@action Hide|XPHB} action."
 					]
 				}
 			],
@@ -48659,7 +48654,7 @@
 				{
 					"name": "Nimble Escape",
 					"entries": [
-						"The tiger takes the Disengage or Hide action."
+						"The tiger takes the {@action Disengage|XPHB} or {@action Hide|XPHB} action."
 					]
 				}
 			],
@@ -50431,7 +50426,7 @@
 				{
 					"name": "Shadow Stealth",
 					"entries": [
-						"While in {@variantrule Dim Light|XPHB} or {@variantrule Darkness|XPHB}, the shadow takes the Hide action."
+						"While in {@variantrule Dim Light|XPHB} or {@variantrule Darkness|XPHB}, the shadow takes the {@action Hide|XPHB} action."
 					]
 				}
 			],
@@ -50582,7 +50577,7 @@
 				{
 					"name": "Shadow Stealth",
 					"entries": [
-						"While in {@variantrule Dim Light|XPHB} or {@variantrule Darkness|XPHB}, the demon takes the Hide action."
+						"While in {@variantrule Dim Light|XPHB} or {@variantrule Darkness|XPHB}, the demon takes the {@action Hide|XPHB} action."
 					]
 				}
 			],
@@ -50726,7 +50721,7 @@
 				{
 					"name": "Shadow Stealth",
 					"entries": [
-						"While in {@variantrule Dim Light|XPHB} or {@variantrule Darkness|XPHB}, the dragon takes the Hide action."
+						"While in {@variantrule Dim Light|XPHB} or {@variantrule Darkness|XPHB}, the dragon takes the {@action Hide|XPHB} action."
 					]
 				}
 			],
@@ -53380,7 +53375,7 @@
 				{
 					"name": "Cunning Action",
 					"entries": [
-						"The spy takes the Dash, Disengage, or Hide action."
+						"The spy takes the {@action Dash|XPHB}, {@action Disengage|XPHB}, or {@action Hide|XPHB} action."
 					]
 				}
 			],
@@ -53510,7 +53505,7 @@
 				{
 					"name": "Cunning Action",
 					"entries": [
-						"The spy takes the Dash, Disengage, or Hide action."
+						"The spy takes the {@action Dash|XPHB}, {@action Disengage|XPHB}, or {@action Hide|XPHB} action."
 					]
 				}
 			],
@@ -53659,9 +53654,6 @@
 			],
 			"miscTags": [
 				"MA"
-			],
-			"conditionInflict": [
-				"incapacitated"
 			],
 			"savingThrowForced": [
 				"constitution",
@@ -56002,7 +55994,7 @@
 				{
 					"name": "Nimble Escape",
 					"entries": [
-						"The tiger takes the Disengage or Hide action."
+						"The tiger takes the {@action Disengage|XPHB} or {@action Hide|XPHB} action."
 					]
 				}
 			],
@@ -57862,9 +57854,7 @@
 			],
 			"conditionInflict": [
 				"charmed",
-				"grappled",
-				"incapacitated",
-				"paralyzed"
+				"grappled"
 			],
 			"conditionInflictSpell": [
 				"charmed",
@@ -57984,7 +57974,7 @@
 				{
 					"name": "Deathless Agility",
 					"entries": [
-						"The familiar takes the Dash or Disengage action."
+						"The familiar takes the {@action Dash|XPHB} or {@action Disengage|XPHB} action."
 					]
 				}
 			],
@@ -58122,7 +58112,7 @@
 				{
 					"name": "Shadow Stealth",
 					"entries": [
-						"While in {@variantrule Dim Light|XPHB} or {@variantrule Darkness|XPHB}, the vampire takes the Hide action."
+						"While in {@variantrule Dim Light|XPHB} or {@variantrule Darkness|XPHB}, the vampire takes the {@action Hide|XPHB} action."
 					]
 				}
 			],
@@ -58291,7 +58281,7 @@
 				{
 					"name": "Deathless Agility",
 					"entries": [
-						"The vampire takes the Dash or Disengage action."
+						"The vampire takes the {@action Dash|XPHB} or {@action Disengage|XPHB} action."
 					]
 				}
 			],
@@ -58331,8 +58321,7 @@
 				"MA"
 			],
 			"conditionInflict": [
-				"grappled",
-				"incapacitated"
+				"grappled"
 			],
 			"savingThrowForced": [
 				"constitution"
@@ -58578,8 +58567,6 @@
 				"RA"
 			],
 			"conditionInflict": [
-				"incapacitated",
-				"paralyzed",
 				"poisoned"
 			],
 			"conditionInflictSpell": [
@@ -59608,6 +59595,9 @@
 				},
 				{
 					"source": "FRAiF"
+				},
+				{
+					"source": "FFotR"
 				}
 			],
 			"size": [
@@ -60561,7 +60551,7 @@
 				{
 					"name": "Prowl (Tiger or Hybrid Form Only)",
 					"entries": [
-						"The weretiger moves up to its {@variantrule Speed|XPHB} without provoking {@action Opportunity Attack|XPHB|Opportunity Attacks}. At the end of this movement, the weretiger can take the Hide action."
+						"The weretiger moves up to its {@variantrule Speed|XPHB} without provoking {@action Opportunity Attack|XPHB|Opportunity Attacks}. At the end of this movement, the weretiger can take the {@action Hide|XPHB} action."
 					]
 				},
 				{
@@ -62440,6 +62430,9 @@
 			"otherSources": [
 				{
 					"source": "FRAiF"
+				},
+				{
+					"source": "FFotR"
 				}
 			],
 			"size": [

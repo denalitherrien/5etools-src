@@ -631,7 +631,7 @@ globalThis.Renderer = function () {
 		const isMinimizeLayoutShift = this._isMinimizeLayoutShift && hasWidthHeight;
 
 		const svg = isLazy || isMinimizeLayoutShift
-			? `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${entry.width}" height="${entry.height}"><rect width="100%" height="100%" fill="${Renderer.utils.lazy.COLOR_PLACEHOLDER}"></rect></svg>`)}`
+			? Renderer.utils.lazy.getPlaceholderImgHtml({width: entry.width, height: entry.height})
 			: null;
 
 		const ptAttributesShared = [
@@ -1666,7 +1666,7 @@ globalThis.Renderer = function () {
 		this._renderPrefix(entry, textStack, meta, options);
 		textStack[0] += `<p class="rd__p-list-item" ${entry.name ? `data-roll-name-ancestor="${Renderer.stripTags(entry.name).qq()}"` : ""}>`;
 		if (entry.name) {
-			textStack[0] += `<span class="${this._getMutatedStyleString(entry.style) || entry.type === "itemSub" ? "italic" : "bold"} rd__list-item-name">${this.render(entry.name)}${this._renderItemSubtypes_isAddPeriod(entry) ? "." : ""}</span> `;
+			textStack[0] += `<span class="${entry.type === "itemSub" ? "italic" : "bold"} rd__list-item-name">${this.render(entry.name)}${this._renderItemSubtypes_isAddPeriod(entry) ? "." : ""}</span> `;
 		}
 		if (entry.entry) this._recursiveRender(entry.entry, textStack, meta);
 		else if (entry.entries) {
@@ -3477,7 +3477,13 @@ Renderer.utils = class {
 	static _tabs = {};
 	static _curTab = null;
 	static _tabsPreferredLabel = null;
-	static bindTabButtons ({tabButtons, tabLabelReference, $wrpTabs, $pgContent}) {
+	static bindTabButtons ({tabButtons, tabLabelReference, $wrpTabs, wrpTabs, $pgContent, pgContent}) {
+		if ($wrpTabs && wrpTabs) throw new Error(`Only one of "$wrpTabs" and "wrpTabs" may be provided!`);
+		if ($pgContent && pgContent) throw new Error(`Only one of "$pgContent" and "pgContent" may be provided!`);
+
+		if (wrpTabs) $wrpTabs = $(wrpTabs);
+		if (pgContent) $pgContent = $(pgContent);
+
 		Renderer.utils._tabs = {};
 		Renderer.utils._curTab = null;
 
@@ -3694,12 +3700,20 @@ Renderer.utils = class {
 	/**
 	 * @param isImageTab True if this is the "Images" tab, false otherwise
 	 * @param $content The statblock wrapper
+	 * @param content The statblock wrapper
 	 * @param entity Entity to build tab for (e.g. a monster; an item)
 	 * @param pFnGetFluff Function which gets the entity's fluff.
 	 * @param $headerControls
+	 * @param wrpHeaderControls
 	 * @param page
 	 */
-	static async pBuildFluffTab ({isImageTab, $content, entity, $headerControls, pFnGetFluff, page} = {}) {
+	static async pBuildFluffTab ({isImageTab, $content, wrpContent, entity, $headerControls, wrpHeaderControls, pFnGetFluff, page} = {}) {
+		if ($content && wrpContent) throw new Error(`Only one of "$content" and "wrpContent" may be specified!`);
+		if ($headerControls && wrpHeaderControls) throw new Error(`Only one of "$headerControls" and "wrpHeaderControls" may be specified!`);
+
+		if (wrpContent) $content = $(wrpContent);
+		if (wrpHeaderControls) $headerControls = $(wrpHeaderControls);
+
 		$content.append(Renderer.utils.getBorderTr());
 		$content.append(Renderer.utils.getNameTr(entity, {controlRhs: $headerControls, asJquery: true, page}));
 		const $td = $(`<td colspan="6" class="pb-3"></td>`);
@@ -4430,7 +4444,10 @@ Renderer.utils = class {
 		if (entry[prop].type === "internal") {
 			href = UrlUtil.link(Renderer.get().getMediaUrl(mediaDir, isUrlEncode ? encodeURI(entry[prop].path) : entry[prop].path));
 		} else if (entry[prop].type === "external") {
-			href = isUrlEncode ? encodeURI(entry[prop].url) : entry[prop].url;
+			const isPreEncoded = decodeURI(entry[prop].url) !== entry[prop].url;
+			href = (isPreEncoded || !isUrlEncode)
+				? entry[prop].url
+				: encodeURI(entry[prop].url);
 		}
 		return href;
 	}
@@ -5130,8 +5147,19 @@ Renderer.utils = class {
 
 		/* -------------------------------------------- */
 
-		ATTR_IMG_FINAL_SRC: "data-src",
 		COLOR_PLACEHOLDER: "#ccc3",
+
+		getPlaceholderImgHtml ({width, height, shapeType = "rect"}) {
+			const ptShape = shapeType === "circle"
+				? `<circle cx="50%" cy="50%" r="50%" fill="${Renderer.utils.lazy.COLOR_PLACEHOLDER}"></circle>`
+				: `<rect width="100%" height="100%" fill="${Renderer.utils.lazy.COLOR_PLACEHOLDER}"></rect>`;
+
+			return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${ptShape}</svg>`)}`;
+		},
+
+		/* -------------------------------------------- */
+
+		ATTR_IMG_FINAL_SRC: "data-src",
 
 		mutFinalizeEle (ele) {
 			const srcFinal = ele.getAttribute(Renderer.utils.lazy.ATTR_IMG_FINAL_SRC);
@@ -7889,10 +7917,12 @@ Renderer.spell = class {
 	};
 
 	static populatePrereleaseLookup (brew, {isForce = false} = {}) {
+		if (!brew) return;
 		Renderer.spell._spellSourceManagerPrerelease.populate({brew, isForce});
 	}
 
 	static populateBrewLookup (brew, {isForce = false} = {}) {
+		if (!brew) return;
 		Renderer.spell._spellSourceManagerBrew.populate({brew, isForce});
 	}
 
@@ -8552,23 +8582,27 @@ Renderer.race = class {
 					lst,
 				],
 			},
-			{
-				type: "section",
-				entries: [
+			...baseRace.entries
+				? [
 					{
-						type: "entries",
+						type: "section",
 						entries: [
 							{
 								type: "entries",
-								name: "Traits",
 								entries: [
-									...MiscUtil.copyFast(baseRace.entries),
+									{
+										type: "entries",
+										name: "Traits",
+										entries: [
+											...MiscUtil.copyFast(baseRace.entries),
+										],
+									},
 								],
 							},
 						],
 					},
-				],
-			},
+				]
+				: [],
 		];
 	}
 
@@ -10367,34 +10401,48 @@ Renderer.monster = class {
 		}
 	};
 
+	static _GET_CR_SCALE_TARGET__ELES_CLICK_CLEAN_SLIDERS = new Map();
+
 	static getCrScaleTarget (
 		{
 			win,
 			btnScale,
+			// eslint-disable-next-line vet-jquery/jquery
 			$btnScale,
 			initialCr,
 			cbRender,
 			isCompact,
 		},
 	) {
+		// eslint-disable-next-line vet-jquery/jquery
 		if (btnScale && $btnScale) throw new Error(`Only one of "$btnScale" and "btnScale" may be provided!`);
 
-		$btnScale ||= $(btnScale);
-
-		const evtName = "click.cr-scaler";
+		// eslint-disable-next-line vet-jquery/jquery
+		btnScale ||= e_($btnScale[0]);
 
 		let slider;
 
-		const $body = $(win.document.body);
-		function cleanSliders () {
-			$body.find(`.mon__cr-slider-wrp`).remove();
-			$btnScale.off(evtName);
+		const eleBody = e_(win.document.body);
+		const cleanSliders = () => {
+			eleBody.findAll(`.mon__cr-slider-wrp`).forEach(ele => ele.remove());
+			btnScale.off("click");
 			if (slider) slider.destroy();
-		}
-
+		};
 		cleanSliders();
 
-		const $wrp = $(`<div class="mon__cr-slider-wrp ${isCompact ? "mon__cr-slider-wrp--compact" : ""}"></div>`);
+		const bodyOnn = () => {
+			this._GET_CR_SCALE_TARGET__ELES_CLICK_CLEAN_SLIDERS.set(eleBody, cleanSliders);
+			eleBody.onn("click", cleanSliders);
+			return eleBody;
+		};
+
+		const bodyOff = () => {
+			const fnBodyPrev = this._GET_CR_SCALE_TARGET__ELES_CLICK_CLEAN_SLIDERS.get(eleBody);
+			if (fnBodyPrev) eleBody.off("click", fnBodyPrev);
+			return eleBody;
+		};
+
+		const wrp = ee`<div class="mon__cr-slider-wrp ${isCompact ? "mon__cr-slider-wrp--compact" : ""}"></div>`;
 
 		const cur = Parser.CRS.indexOf(initialCr);
 		if (cur === -1) throw new Error(`Initial CR ${initialCr} was not valid!`);
@@ -10411,19 +10459,20 @@ Renderer.monster = class {
 			propCurMin: "cur",
 			fnDisplay: ix => Parser.CRS[ix],
 		});
-		slider.$get().appendTo($wrp);
+		slider.get().appendTo(wrp);
 
-		$btnScale.off(evtName).on(evtName, (evt) => evt.stopPropagation());
-		$wrp.on(evtName, (evt) => evt.stopPropagation());
-		$body.off(evtName).on(evtName, cleanSliders);
+		btnScale.off("click").onn("click", (evt) => evt.stopPropagation());
+		wrp.onn("click", (evt) => evt.stopPropagation());
+		bodyOff();
+		bodyOnn();
 
 		comp._addHookBase("cur", () => {
 			cbRender(Parser.crToNumber(Parser.CRS[comp._state.cur]));
-			$body.off(evtName);
+			bodyOff();
 			cleanSliders();
 		});
 
-		$btnScale.after($wrp);
+		btnScale.after(wrp);
 	}
 
 	static getSelSummonSpellLevel (mon) {
@@ -10620,8 +10669,8 @@ Renderer.monster = class {
 			? Parser.crToXpNumber(cr) != null ? (Parser.crToXpNumber(cr) * 2) : null
 			: null;
 
-		const ptXp = xp != null ? xp.toLocaleString() : null;
-		const ptXpMythic = xpMythic != null ? xpMythic.toLocaleString() : null;
+		const ptXp = xp != null ? xp.toLocaleStringVe() : null;
+		const ptXpMythic = xpMythic != null ? xpMythic.toLocaleStringVe() : null;
 
 		const ptXps = [
 			ptXp != null ? `${ptXp} XP` : null,
@@ -10662,14 +10711,14 @@ Renderer.monster = class {
 			]
 			// TODO(ODND) speculative text; revise
 			: [
-				xpBase ? xpBase.toLocaleString() : null,
-				Renderer.monster.hasMythicActions(mon) ? `${(xpBase * 2).toLocaleString()} as a mythic encounter` : null,
+				xpBase ? xpBase.toLocaleStringVe() : null,
+				Renderer.monster.hasMythicActions(mon) ? `${(xpBase * 2).toLocaleStringVe()} as a mythic encounter` : null,
 			]
 				.filter(Boolean);
 
 		if (mon.cr != null && typeof mon.cr !== "string") {
-			if (mon.cr.lair || mon.cr.xpLair) ptsXp.push(`${(mon.cr.xpLair ? mon.cr.xpLair.toLocaleString() : null) || Parser.crToXp(mon.cr.lair)} in lair`);
-			if (mon.cr.coven || mon.cr.xpCoven) ptsXp.push(`${(mon.cr.xpCoven ? mon.cr.xpCoven.toLocaleString() : null) || Parser.crToXp(mon.cr.coven)} when part of a coven`);
+			if (mon.cr.lair || mon.cr.xpLair) ptsXp.push(`${(mon.cr.xpLair ? mon.cr.xpLair.toLocaleStringVe() : null) || Parser.crToXp(mon.cr.lair)} in lair`);
+			if (mon.cr.coven || mon.cr.xpCoven) ptsXp.push(`${(mon.cr.xpCoven ? mon.cr.xpCoven.toLocaleStringVe() : null) || Parser.crToXp(mon.cr.coven)} when part of a coven`);
 		}
 
 		const ptPbVal = Renderer.monster.getPbPart(mon, {isPlainText});
@@ -11367,7 +11416,9 @@ Renderer.monster = class {
 	}
 
 	static hover = class {
-		static bindFluffImageMouseover ({mon, $ele}) {
+		static bindFluffImageMouseover ({mon, ele, $ele}) {
+			if ($ele && ele) throw new Error(`Only one of "ele" and "$ele" may be provided!`);
+			if (ele) $ele = $(ele);
 			$ele
 				.on("mouseover", evt => this._pOnFluffImageMouseover({evt, mon, $ele}));
 		}
@@ -11669,17 +11720,47 @@ Renderer.item = class {
 			.join(" ");
 	}
 
-	static getTypeRarityAndAttunementText (item) {
-		const typeRarity = [
-			item._typeHtml === "other" ? "" : item._typeHtml,
-			(item.rarity && Renderer.item.doRenderRarity(item.rarity) ? item.rarity : ""),
-		].filter(Boolean).join(", ");
+	static getTransformedTypeEntriesMeta ({item, styleHint = null} = {}) {
+		styleHint ||= VetoolsConfig.get("styleSwitcher", "style");
 
-		return [
-			item.reqAttune ? `${typeRarity} ${item._attunement}` : typeRarity,
-			item._subTypeHtml || "",
-			item.tier ? `${item.tier} tier` : "",
-		];
+		const fnTransform = styleHint === "classic" ? "uppercaseFirst" : "toTitleCase";
+
+		const entryType = (item._entryType || "")[fnTransform]();
+		const entrySubtype = (item._entrySubType || "")[fnTransform]();
+
+		const typeRarity = [
+			item._entryType === "other" ? "" : entryType,
+			(item.rarity && Renderer.item.doRenderRarity(item.rarity) ? (item.rarity)[fnTransform]() : ""),
+		]
+			.filter(Boolean)
+			.join(", ");
+
+		const ptAttunement = item.reqAttune ? (item._attunement || "")[fnTransform]() : "";
+
+		return {
+			entryType,
+			entryTypeRarity: [typeRarity, ptAttunement].filter(Boolean).join(" "),
+			entrySubtype,
+			entryTier: item.tier
+				? `${item.tier} tier`[fnTransform]()
+				: "",
+		};
+	}
+
+	static getTypeRarityAndAttunementHtmlParts (item, {styleHint = null} = {}) {
+		styleHint ||= VetoolsConfig.get("styleSwitcher", "style");
+
+		const {
+			entryTypeRarity,
+			entrySubtype,
+			entryTier,
+		} = Renderer.item.getTransformedTypeEntriesMeta({item, styleHint});
+
+		return {
+			typeRarityHtml: Renderer.get().render(entryTypeRarity),
+			subTypeHtml: Renderer.get().render(entrySubtype),
+			tierHtml: Renderer.get().render(entryTier),
+		};
 	}
 
 	static getAttunementAndAttunementCatText (item, prop = "reqAttune") {
@@ -11703,70 +11784,74 @@ Renderer.item = class {
 		return [attunement, attunementCat];
 	}
 
-	static getHtmlAndTextTypes (item, {styleHint = null} = {}) {
+	static getRenderableTypeEntriesMeta (item, {styleHint = null} = {}) {
 		styleHint ||= VetoolsConfig.get("styleSwitcher", "style");
 
-		const typeHtml = [];
-		const typeListText = [];
-		const subTypeHtml = [];
+		const textTypes = [];
+		const ptsEntryType = [];
+		const ptsEntrySubType = [];
 
 		const itemTypeAbv = item.type ? DataUtil.itemType.unpackUid(item.type).abbreviation : null;
 		const itemTypeAltAbv = item.typeAlt ? DataUtil.itemType.unpackUid(item.typeAlt).abbreviation : null;
 
 		let showingBase = false;
 		if (item.wondrous) {
-			typeHtml.push(`wondrous item${item.tattoo ? ` (tattoo)` : ""}`);
-			typeListText.push("wondrous item");
+			ptsEntryType.push(`wondrous item${item.tattoo ? ` (tattoo)` : ""}`);
+			textTypes.push("wondrous item");
 		}
 		if (item.tattoo) {
-			typeListText.push("tattoo");
+			textTypes.push("tattoo");
 		}
 		if (item.staff) {
-			typeHtml.push("staff");
-			typeListText.push("staff");
+			ptsEntryType.push("staff");
+			textTypes.push("staff");
 		}
 		if (item.ammo) {
-			typeHtml.push(`ammunition`);
-			typeListText.push("ammunition");
+			ptsEntryType.push(`ammunition`);
+			textTypes.push("ammunition");
 		}
 		if (item.age) {
-			subTypeHtml.push(item.age);
-			typeListText.push(item.age);
+			ptsEntrySubType.push(item.age);
+			textTypes.push(item.age);
 		}
 		if (item.weaponCategory) {
-			typeHtml.push(`weapon${item.baseItem ? ` (${Renderer.get().render(`{@item ${styleHint === "classic" ? item.baseItem : item.baseItem.toTitleCase()}}`)})` : ""}`);
-			subTypeHtml.push(`${item.weaponCategory} weapon`);
-			typeListText.push(`${item.weaponCategory} weapon`);
+			ptsEntryType.push(`weapon${item.baseItem ? ` ({@item ${styleHint === "classic" ? item.baseItem : item.baseItem.toTitleCase()}})` : ""}`);
+			ptsEntrySubType.push(`${item.weaponCategory} weapon`);
+			textTypes.push(`${item.weaponCategory} weapon`);
 			showingBase = true;
 		}
 		if (item.staff && (itemTypeAbv !== Parser.ITM_TYP_ABV__MELEE_WEAPON && itemTypeAltAbv !== Parser.ITM_TYP_ABV__MELEE_WEAPON)) { // DMG p140: "Unless a staff's description says otherwise, a staff can be used as a quarterstaff."
-			subTypeHtml.push("melee weapon");
-			typeListText.push("melee weapon");
+			ptsEntrySubType.push("melee weapon");
+			textTypes.push("melee weapon");
 		}
-		if (item.type) Renderer.item._getHtmlAndTextTypes_type({type: item.type, typeAbv: itemTypeAbv, typeHtml, typeListText, subTypeHtml, showingBase, item});
-		if (item.typeAlt) Renderer.item._getHtmlAndTextTypes_type({type: item.typeAlt, typeAbv: itemTypeAltAbv, typeHtml, typeListText, subTypeHtml, showingBase, item});
+		if (item.type) Renderer.item._getHtmlAndTextTypes_type({type: item.type, typeAbv: itemTypeAbv, ptsEntryType, textTypes, ptsEntrySubType, showingBase, item});
+		if (item.typeAlt) Renderer.item._getHtmlAndTextTypes_type({type: item.typeAlt, typeAbv: itemTypeAltAbv, ptsEntryType, textTypes, ptsEntrySubType, showingBase, item});
 		if (item.firearm) {
-			subTypeHtml.push("firearm");
-			typeListText.push("firearm");
+			ptsEntrySubType.push("firearm");
+			textTypes.push("firearm");
 		}
 		if (item.poison) {
-			typeHtml.push(`poison${item.poisonTypes ? ` (${item.poisonTypes.joinConjunct(", ", " or ")})` : ""}`);
-			typeListText.push("poison");
+			ptsEntryType.push(`poison${item.poisonTypes ? ` (${item.poisonTypes.joinConjunct(", ", " or ")})` : ""}`);
+			textTypes.push("poison");
 		}
-		return [typeListText, typeHtml.join(", "), subTypeHtml.join(", ")];
+		return {
+			textTypes: textTypes,
+			entryType: ptsEntryType.join(", "),
+			entrySubType: ptsEntrySubType.join(", "),
+		};
 	}
 
-	static _getHtmlAndTextTypes_type ({type, typeAbv, typeHtml, typeListText, subTypeHtml, showingBase, item}) {
+	static _getHtmlAndTextTypes_type ({type, typeAbv, ptsEntryType, textTypes, ptsEntrySubType, showingBase, item}) {
 		const fullType = Renderer.item.getItemTypeName(type);
 
-		const isSub = (typeListText.some(it => it.includes("weapon")) && fullType.includes("weapon"))
-			|| (typeListText.some(it => it.includes("armor")) && fullType.includes("armor"));
+		const isSub = (textTypes.some(it => it.includes("weapon")) && fullType.includes("weapon"))
+			|| (textTypes.some(it => it.includes("armor")) && fullType.includes("armor"));
 
-		if (!showingBase && !!item.baseItem) (isSub ? subTypeHtml : typeHtml).push(`${fullType} (${Renderer.get().render(`{@item ${item.baseItem}}`)})`);
-		else if (typeAbv === Parser.ITM_TYP_ABV__SHIELD) (isSub ? subTypeHtml : typeHtml).push(Renderer.get().render(`armor ({@item shield|phb})`));
-		else (isSub ? subTypeHtml : typeHtml).push(fullType);
+		if (!showingBase && !!item.baseItem) (isSub ? ptsEntrySubType : ptsEntryType).push(`${fullType} ({@item ${item.baseItem}})`);
+		else if (typeAbv === Parser.ITM_TYP_ABV__SHIELD) (isSub ? ptsEntrySubType : ptsEntryType).push(`armor ({@item shield|phb})`);
+		else (isSub ? ptsEntrySubType : ptsEntryType).push(fullType);
 
-		typeListText.push(fullType);
+		textTypes.push(fullType);
 	}
 
 	static _GET_RENDERED_ENTRIES_WALKER = null;
@@ -11878,7 +11963,7 @@ Renderer.item = class {
 
 		const [ptDamage, ptProperties] = Renderer.item.getRenderedDamageAndProperties(item);
 		const ptMastery = Renderer.item.getRenderedMastery(item);
-		const [typeRarityText, subTypeText, tierText] = Renderer.item.getTypeRarityAndAttunementText(item);
+		const {typeRarityHtml, subTypeHtml, tierHtml} = Renderer.item.getTypeRarityAndAttunementHtmlParts(item);
 
 		const textRight = [
 			ptDamage,
@@ -11892,7 +11977,7 @@ Renderer.item = class {
 		return `
 		${Renderer.utils.getExcludedTr({entity: item, dataProp: "item", page: UrlUtil.PG_ITEMS})}
 		${Renderer.utils.getNameTr(item, {page: UrlUtil.PG_ITEMS, isEmbeddedEntity: opts.isEmbeddedEntity})}
-		<tr><td class="rd-item__type-rarity-attunement" colspan="6">${Renderer.item.getTypeRarityAndAttunementHtml(typeRarityText, subTypeText, tierText, {styleHint})}</td></tr>
+		<tr><td class="rd-item__type-rarity-attunement" colspan="6">${Renderer.item.getTypeRarityAndAttunementHtml({typeRarityHtml, subTypeHtml, tierHtml}, {styleHint})}</td></tr>
 		<tr>
 			<td colspan="2">${[Parser.itemValueToFullMultiCurrency(item, {styleHint}), Parser.itemWeightToFull(item)].filter(Boolean).join(", ").uppercaseFirst()}</td>
 			<td colspan="4">
@@ -11906,23 +11991,15 @@ Renderer.item = class {
 		return item._fullAdditionalEntries?.length || item._fullEntries?.length || item.entries?.length;
 	}
 
-	static getTypeRarityAndAttunementHtml (typeRarityText, subTypeText, tierText, {styleHint = null} = {}) {
+	static getTypeRarityAndAttunementHtml ({typeRarityHtml = "", subTypeHtml = "", tierHtml = ""}, {styleHint = null} = {}) {
 		styleHint ||= VetoolsConfig.get("styleSwitcher", "style");
 
-		typeRarityText ||= "";
-		subTypeText ||= "";
-		tierText ||= "";
-
-		const ptTypeRarity = styleHint === "classic" ? typeRarityText.uppercaseFirst() : typeRarityText.toTitleCase();
-		const ptTier = styleHint === "classic" ? subTypeText.uppercaseFirst() : subTypeText.toTitleCase();
-		const ptSubtype = styleHint === "classic" ? tierText.uppercaseFirst() : tierText.toTitleCase();
-
 		return `<div class="ve-flex-col">
-			${typeRarityText || tierText ? `<div class="split ${subTypeText ? "mb-1" : ""}">
-				<div class="italic">${ptTypeRarity}</div>
-				<div class="no-wrap ${tierText ? `ml-2` : ""}">${ptTier}</div>
+			${typeRarityHtml || tierHtml ? `<div class="split ${subTypeHtml ? "mb-1" : ""}">
+				<div class="italic">${typeRarityHtml || ""}</div>
+				<div class="no-wrap ${tierHtml ? `ml-2` : ""}">${tierHtml || ""}</div>
 			</div>` : ""}
-			${subTypeText ? `<div class="italic">${ptSubtype}</div>` : ""}
+			${subTypeHtml ? `<div class="italic ve-muted">${subTypeHtml}</div>` : ""}
 		</div>`;
 	}
 
@@ -12709,10 +12786,7 @@ Renderer.item = class {
 		}
 
 		// bake in types
-		const [typeListText, typeHtml, subTypeHtml] = Renderer.item.getHtmlAndTextTypes(item, {styleHint});
-		item._typeListText = typeListText;
-		item._typeHtml = typeHtml;
-		item._subTypeHtml = subTypeHtml;
+		({textTypes: item._textTypes, entryType: item._entryType, entrySubType: item._entrySubType} = Renderer.item.getRenderableTypeEntriesMeta(item, {styleHint}));
 
 		// bake in attunement
 		const [attune, attuneCat] = Renderer.item.getAttunementAndAttunementCatText(item);
@@ -13817,7 +13891,7 @@ Renderer.vehicle = class {
 			const ptAc = ent.ac ?? dexMod === 0 ? `19` : `${19 + dexMod} (19 while motionless)`;
 
 			return {
-				entrySizeWeight: `{@i ${Parser.sizeAbvToFull(ent.size)} vehicle (${ent.weight.toLocaleString()} lb.)}`,
+				entrySizeWeight: `{@i ${Parser.sizeAbvToFull(ent.size)} vehicle (${ent.weight.toLocaleStringVe()} lb.)}`,
 				entryCreatureCapacity: `{@b Creature Capacity} ${Renderer.vehicle.getInfwarCreatureCapacity(ent)}`,
 				entryCargoCapacity: `{@b Cargo Capacity} ${Parser.weightToFull(ent.capCargo)}`,
 				entryArmorClass: `{@b Armor Class} ${ptAc}`,
@@ -15154,19 +15228,36 @@ Renderer.generic = class {
 };
 
 Renderer.redirect = class {
+	static _P_LOADING_VERSION_REDIRECT_LOOKUP = null;
 	static _VERSION_REDIRECT_LOOKUP = null;
 
-	static async pGetRedirectByHash (page, hash) {
-		const redirectLookup = await (
-			this._VERSION_REDIRECT_LOOKUP ||= DataUtil.loadJSON(`${Renderer.get().baseUrl}data/generated/gendata-tag-redirects.json`)
-		);
+	static async pInit () {
+		this._P_LOADING_VERSION_REDIRECT_LOOKUP ||= DataUtil.loadJSON(`${Renderer.get().baseUrl}data/generated/gendata-tag-redirects.json`);
+		const lookup = await this._P_LOADING_VERSION_REDIRECT_LOOKUP;
+		this._VERSION_REDIRECT_LOOKUP ||= lookup;
+	}
 
-		const fromLookup = MiscUtil.get(redirectLookup, page, hash);
+	static async pGetRedirectByHash (page, hash) {
+		await this.pInit();
+		return this.getRedirectByHash(page, hash);
+	}
+
+	static async pGetRedirectByUid (prop, uid) {
+		await this.pInit();
+		return this.getRedirectByUid(prop, uid);
+	}
+
+	/* -------------------------------------------- */
+
+	static getRedirectByHash (page, hash) {
+		if (!this._VERSION_REDIRECT_LOOKUP) throw new Error(`Not initialized!`);
+
+		const fromLookup = MiscUtil.get(this._VERSION_REDIRECT_LOOKUP, page, hash);
 		if (!fromLookup) return null;
 
 		const hashNxt = fromLookup.hash || fromLookup;
 		const pageNxt = fromLookup.page || page;
-		const decodedNxt = await UrlUtil.pAutoDecodeHash(hashNxt, {page: pageNxt});
+		const decodedNxt = UrlUtil.autoDecodeHash(hashNxt, {page: pageNxt});
 
 		const pagePropsNxt = UrlUtil.PAGE_TO_PROPS[pageNxt] || [pageNxt];
 		if (pagePropsNxt.some(prop => ExcludeUtil.isExcluded(hashNxt, prop, decodedNxt.source, {isNoCount: true}))) return null;
@@ -15174,7 +15265,7 @@ Renderer.redirect = class {
 		return {page: pageNxt, hash: hashNxt, source: decodedNxt.source, name: decodedNxt.name};
 	}
 
-	static async pGetRedirectByUid (prop, uid) {
+	static getRedirectByUid (prop, uid) {
 		const page = UrlUtil.PROP_TO_PAGE[prop];
 		if (!page) throw new Error(`Unhandled prop "${prop}"`);
 
@@ -15182,7 +15273,7 @@ Renderer.redirect = class {
 		const unpacked = DataUtil.proxy.unpackUid(prop, uid, tag, {isLower: true});
 		const hash = UrlUtil.URL_TO_HASH_BUILDER[prop](unpacked);
 
-		return this.pGetRedirectByHash(page, hash);
+		return this.getRedirectByHash(page, hash);
 	}
 };
 
@@ -16608,20 +16699,24 @@ Renderer.hover = class {
 	 * @param [opts.fnRender]
 	 * @param [renderFnOpts]
 	 */
-	static $getHoverContent_stats (page, toRender, opts, renderFnOpts) {
+	static getHoverContent_stats (page, toRender, opts, renderFnOpts) {
 		opts = opts || {};
 		if (page === UrlUtil.PG_RECIPES) opts = {...MiscUtil.copyFast(opts), isBookContent: true};
 
 		const name = toRender._displayName || toRender.name;
 		const fnRender = opts.fnRender || Renderer.hover.getFnRenderCompact(page, {isStatic: opts.isStatic});
-		const $out = $$`<table class="w-100 stats ${opts.isBookContent ? `stats--book` : ""}" ${name ? `data-roll-name-ancestor-roller="${Renderer.stripTags(name).qq()}"` : ""}>${fnRender(toRender, renderFnOpts)}</table>`;
+		const out = ee`<table class="w-100 stats ${opts.isBookContent ? `stats--book` : ""}" ${name ? `data-roll-name-ancestor-roller="${Renderer.stripTags(name).qq()}"` : ""}>${fnRender(toRender, renderFnOpts)}</table>`;
 
 		if (!opts.isStatic) {
 			const fnBind = Renderer.hover.getFnBindListenersCompact(page);
-			if (fnBind) fnBind(toRender, $out[0]);
+			if (fnBind) fnBind(toRender, out);
 		}
 
-		return $out;
+		return out;
+	}
+
+	static $getHoverContent_stats (page, toRender, opts, renderFnOpts) {
+		return $(Renderer.hover.getHoverContent_stats(page, toRender, opts, renderFnOpts));
 	}
 
 	/**
